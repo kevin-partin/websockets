@@ -5,7 +5,6 @@ websocket threaded client example
 '''
 
 import json
-import os
 import sys
 import time
 
@@ -16,35 +15,51 @@ WS_HOST = '127.0.0.1'
 WS_PORT = 8765
 WS_URI  = f'ws://{WS_HOST}:{WS_PORT}'
 
-print(f'Attemping to establish a websocket connection to {WS_URI} ', end='', flush=True)
+enabled = True
 
-while True:
+while enabled:
 
-    print('.', end='', flush=True)
+    print(f'WS-Client: Attemping to establish a websocket connection to {WS_URI}')
 
-    try:
-        with websockets.sync.client.connect(WS_URI) as websocket:
+    while True:
 
-            print(' Done.\nWS-Client: connection established')
+        try:
 
-            try:
+            with websockets.sync.client.connect(WS_URI) as websocket:
 
-                for message in websocket:
-                    print( json.loads( message ) )
+                print('WS-Client: Connection established')
 
-            except websockets.exceptions.ConnectionClosed:
+                while True:
+
+                    try:
+                        message = websocket.recv()
+                        print( json.loads( message ) )
+
+                    except KeyboardInterrupt:
+                        print()
+                        websocket.close()
+                        enabled = False
+                        break
+
+                    except websockets.exceptions.ConnectionClosed:
+                        break
+
+                print('WS-Client: Connection closed')
                 break
 
-    except ConnectionRefusedError:
-        try:
-            time.sleep(5)
+        except ConnectionRefusedError:
+                    
+            try:
+                time.sleep(5)
+            except KeyboardInterrupt:
+                print()
+                enabled = False
+                break
+
         except KeyboardInterrupt:
+            print()
             break
 
-    except KeyboardInterrupt:
-        break
+print('WS-Client: Shutdown')
 
-print('\nWS-Client: connection closed')
-
-print(f'{os.path.basename(__file__)} exiting')
 sys.exit(0)

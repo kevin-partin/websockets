@@ -1,64 +1,62 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
 '''
 websocket server example
 '''
 
 import asyncio
-import base64
 import datetime
-import gzip
 import json
-import os
 import sys
 
 import websockets.exceptions
 import websockets.server
 
-USE_BINARY = False
+WS_HOST = '127.0.0.1'
+WS_PORT = 8765
+WS_URI  = f'ws://{WS_HOST}:{WS_PORT}'
 
+# -----------------------------------------------------------------------------
 
-async def wsServer(host: str, port: int):
+async def wsConnectionHandler(websocket: websockets.WebSocketServerProtocol) -> None:
 
-    print(f'websocket server listening for connections on {host}:{port}')
+    print(f'WS-Server: Connection established with {websocket.remote_address[0]}:{websocket.remote_address[1]}')
+    print(f'WS-Server: Connection ID: {websocket.id}')
 
-    async with websockets.server.serve(wsConnectionHandler, host, port):
-        await asyncio.Future()
-
-
-async def wsConnectionHandler(websocket):
-
-    print('websocket connection established')
-
-    response = {}
-
-    # Send a ISO timestamp as a JSON-string every 5 seconds.
     while True:
 
-        dt = datetime.datetime.now()
-        response['Timestamp'] = dt.isoformat()
-        msg = json.dumps( response )
-
-        if USE_BINARY:
-            msg = base64.b64encode( gzip.compress( msg.encode() ) )
+        message = json.dumps({'timestamp': datetime.now().isoformat(sep=' ', timespec='seconds')})
 
         try:
-            await websocket.send( msg )
+            await websocket.send( message )
+
         except websockets.exceptions.ConnectionClosed:
             break
 
         await asyncio.sleep(5)
 
-    print('websocket connection closed')
+    print('WS-Server: Connection closed')
 
+# -----------------------------------------------------------------------------
 
-WS_HOST = '127.0.0.1'
-WS_PORT = 8765
+async def wsServer(host: str, port: int) -> None:
 
-try:
-    asyncio.run( wsServer(WS_HOST, WS_PORT) )
-except KeyboardInterrupt:
-    print('KeyboardInterrupt exception trapped')
+    print(f'WS-Server: Listening for connections at {host}:{port}')
 
-print(f'{os.path.basename(__file__)} exiting')
-sys.exit(0)
+    async with websockets.server.serve(wsConnectionHandler, host, port):
+        await asyncio.Future()
+
+    print('WS-Server: Shutdown')
+
+# -----------------------------------------------------------------------------
+
+if __name__ == '__main__':
+
+    try:
+        asyncio.run( wsServer(WS_HOST, WS_PORT) )
+    except KeyboardInterrupt:
+        print()
+
+    sys.exit(0)
+
+# -----------------------------------------------------------------------------

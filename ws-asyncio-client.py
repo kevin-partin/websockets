@@ -1,14 +1,11 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
 '''
 websocket asyncio client example
 '''
 
 import asyncio
-import base64
-import gzip
 import json
-import os
 import sys
 
 import websockets.exceptions
@@ -18,32 +15,39 @@ WS_HOST = '127.0.0.1'
 WS_PORT = 8765
 WS_URI  = f'ws://{WS_HOST}:{WS_PORT}'
 
-USE_BINARY = False
-
+# -----------------------------------------------------------------------------
 
 async def wsClient(uri: str):
 
+    print(f'WS-Client: Attemping to establish a websocket connection to {uri}')
+
     async with websockets.client.connect(uri) as websocket:
 
-        print('websocket connection established')
+        print('WS-Client: Connection established')
 
         while True:
+
             try:
-                msg = await websocket.recv()
+                message = await websocket.recv()
+
             except websockets.exceptions.ConnectionClosed:
                 break
+
             except asyncio.CancelledError:
                 break
 
-            if USE_BINARY:
-                msg = gzip.decompress( base64.b64decode( msg ) ).decode()
+            print( json.loads( message ) )
 
-            print( json.loads( msg ) )
+    print('WS-Client: Connection closed')
 
-    print('websocket connection closed')
+# -----------------------------------------------------------------------------
 
+if __name__ == '__main__':
 
-asyncio.run( wsClient(WS_URI) )
+    asyncio.run( wsClient(WS_URI) )
 
-print(f'{os.path.basename(__file__)} exiting')
-sys.exit(0)
+    print('WS-Client: Shutdown')
+
+    sys.exit(0)
+
+# -----------------------------------------------------------------------------
